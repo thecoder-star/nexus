@@ -3,81 +3,86 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nexus | Unblocked</title>
+    <title>Nexus | Debug Mode</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body { background: #020617; color: white; font-family: sans-serif; }
-        .glass { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); }
-        #game-area { display: none; position: fixed; inset: 0; background: black; z-index: 100; flex-direction: column; }
+        body { background: #020617; color: white; font-family: system-ui; }
+        .debug-panel { background: #1e293b; border: 1px solid #3b82f6; padding: 10px; margin-bottom: 20px; border-radius: 8px; font-family: monospace; font-size: 12px; }
+        .game-card { background: rgba(255,255,255,0.05); border-radius: 12px; overflow: hidden; transition: 0.2s; }
+        .game-card:hover { transform: translateY(-5px); background: rgba(255,255,255,0.1); }
     </style>
 </head>
-<body class="p-8">
+<body class="p-6">
 
-    <h1 class="text-3xl font-bold text-blue-500 mb-8 uppercase tracking-tighter">Nexus Portal</h1>
+    <div class="max-w-6xl mx-auto">
+        <h1 class="text-3xl font-black text-blue-500 mb-4">NEXUS SYSTEM</h1>
 
-    <div id="games" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
-        <p id="status" class="col-span-full text-slate-500">Connecting to game database...</p>
-    </div>
-
-    <div id="game-area">
-        <div class="p-4 bg-slate-900 flex justify-between">
-            <span id="active-title" class="font-bold"></span>
-            <button onclick="closeGame()" class="text-red-500 font-bold">CLOSE</button>
+        <div class="debug-panel">
+            <p class="text-blue-400 font-bold mb-2 uppercase">[ System Log ]</p>
+            <div id="log">Waiting for games.js to report in...</div>
         </div>
-        <iframe id="game-frame" class="w-full h-full border-none"></iframe>
+
+        <div id="content">
+            <div id="games" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                </div>
+        </div>
+        <div id="game-container" style="display:none;"></div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/gh/bubbls/ugs-singlefile@main/games.js"></script>
 
     <script>
-        function renderLocalGames(data) {
-            const container = document.getElementById('games');
-            const status = document.getElementById('status');
-            
-            // ERROR FIX: Check if data is an array. 
-            // If it's an object, we look for a 'games' property inside it.
-            let list = [];
-            if (Array.isArray(data)) {
-                list = data;
-            } else if (data && Array.isArray(data.games)) {
-                list = data.games;
-            } else {
-                console.error("Data structure not recognized:", data);
-                status.innerText = "Error: Invalid game data format.";
+        const logEl = document.getElementById('log');
+        
+        function updateLog(msg, color = "text-white") {
+            logEl.innerHTML += `<div class="${color} mt-1">> ${msg}</div>`;
+        }
+
+        window.addEventListener('load', () => {
+            updateLog("Window loaded. Checking window.games...", "text-yellow-400");
+
+            // 1. Check if the variable even exists
+            if (typeof window.games === 'undefined') {
+                updateLog("ERROR: 'window.games' is undefined. The CDN script might be blocked or empty.", "text-red-500");
                 return;
             }
 
-            status.style.display = 'none';
+            // 2. Inspect the data structure
+            updateLog(`Data detected! Type: ${typeof window.games}`);
+            console.log("Full Game Data:", window.games); // Check your F12 console!
+
+            let gameList = [];
+
+            // 3. Attempt to find the list inside the data
+            if (Array.isArray(window.games)) {
+                gameList = window.games;
+                updateLog(`Success: Found array with ${gameList.length} games.`, "text-green-400");
+            } else if (window.games.games && Array.isArray(window.games.games)) {
+                gameList = window.games.games;
+                updateLog(`Success: Found nested array with ${gameList.length} games.`, "text-green-400");
+            } else {
+                updateLog("CRITICAL: Data structure is not an array. Check console (F12) to see the object.", "text-red-500");
+                logEl.innerHTML += `<pre class="bg-black p-2 mt-2 text-pink-400">${JSON.stringify(window.games, null, 2).substring(0, 300)}...</pre>`;
+                return;
+            }
+
+            // 4. Render the games
+            const container = document.getElementById('games');
             container.innerHTML = ''; 
 
-            list.forEach(game => {
-                const div = document.createElement('div');
-                div.className = 'glass p-3 rounded-lg cursor-pointer hover:scale-105 transition-all border-none';
-                div.innerHTML = `
-                    <img src="${game.image}" class="w-full aspect-video object-cover rounded mb-2" onerror="this.src='https://placehold.co/300x169?text=Game'">
-                    <div class="font-semibold text-sm truncate">${game.name}</div>
+            gameList.forEach(game => {
+                const card = document.createElement('div');
+                card.className = 'game-card p-3 cursor-pointer';
+                card.innerHTML = `
+                    <img src="${game.image || game.thumb || ''}" class="w-full aspect-video object-cover rounded mb-2" onerror="this.src='https://placehold.co/300x169?text=No+Image'">
+                    <div class="font-bold text-sm truncate">${game.name || 'Unknown Game'}</div>
                 `;
-                div.onclick = () => {
-                    document.getElementById('game-area').style.display = 'flex';
-                    document.getElementById('game-frame').src = game.url;
-                    document.getElementById('active-title').innerText = game.name;
+                card.onclick = () => {
+                    alert("Launching: " + (game.url || "No URL found"));
+                    if(game.url) window.location.href = game.url;
                 };
-                container.appendChild(div);
+                container.appendChild(card);
             });
-        }
-
-        function closeGame() {
-            document.getElementById('game-area').style.display = 'none';
-            document.getElementById('game-frame').src = '';
-        }
-
-        // Wait for both the page and the external script to finish
-        window.addEventListener('load', () => {
-            if (window.games) {
-                renderLocalGames(window.games);
-            } else {
-                document.getElementById('status').innerText = "Database offline.";
-            }
         });
     </script>
 </body>
