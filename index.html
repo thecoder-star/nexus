@@ -5,73 +5,80 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Nexus | Unblocked</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         body { background: #020617; color: white; font-family: sans-serif; }
         .glass { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); }
-        iframe { background: white; }
+        #game-area { display: none; position: fixed; inset: 0; background: black; z-index: 100; flex-direction: column; }
     </style>
 </head>
 <body class="p-8">
 
-    <header class="max-w-7xl mx-auto mb-12">
-        <h1 class="text-3xl font-bold bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">NEXUS</h1>
-    </header>
+    <h1 class="text-3xl font-bold text-blue-500 mb-8 uppercase tracking-tighter">Nexus Portal</h1>
 
-    <main class="max-w-7xl mx-auto">
-        <div id="games" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            <div id="loading-state" class="col-span-full text-center py-20 opacity-50">
-                <p>Initializing Game Engine...</p>
-            </div>
-        </div>
-    </main>
+    <div id="games" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
+        <p id="status" class="col-span-full text-slate-500">Connecting to game database...</p>
+    </div>
 
-    <div id="game-view" class="fixed inset-0 z-50 bg-black hidden flex-col">
-        <div class="p-4 flex justify-between bg-slate-900">
-            <span id="game-title" class="font-bold">Loading...</span>
-            <button onclick="document.getElementById('game-view').classList.add('hidden')" class="text-red-400">CLOSE</button>
+    <div id="game-area">
+        <div class="p-4 bg-slate-900 flex justify-between">
+            <span id="active-title" class="font-bold"></span>
+            <button onclick="closeGame()" class="text-red-500 font-bold">CLOSE</button>
         </div>
-        <iframe id="game-frame" src="" class="w-full h-full border-none"></iframe>
+        <iframe id="game-frame" class="w-full h-full border-none"></iframe>
     </div>
 
     <script src="https://cdn.jsdelivr.net/gh/bubbls/ugs-singlefile@main/games.js"></script>
 
     <script>
-        // Use a small delay to let the external games.js finish its internal setup
-        window.addEventListener('DOMContentLoaded', () => {
-            const loading = document.getElementById('loading-state');
-            
-            // Check if the script successfully loaded the 'games' array
-            if (window.games) {
-                loading.classList.add('hidden');
-                renderLocalGames(window.games);
-            } else {
-                loading.innerHTML = "Error: Game data not found. Try hosting on GitHub Pages.";
-            }
-        });
-
-        function renderLocalGames(list) {
+        function renderLocalGames(data) {
             const container = document.getElementById('games');
-            container.innerHTML = ''; // Clear loading message
+            const status = document.getElementById('status');
             
+            // ERROR FIX: Check if data is an array. 
+            // If it's an object, we look for a 'games' property inside it.
+            let list = [];
+            if (Array.isArray(data)) {
+                list = data;
+            } else if (data && Array.isArray(data.games)) {
+                list = data.games;
+            } else {
+                console.error("Data structure not recognized:", data);
+                status.innerText = "Error: Invalid game data format.";
+                return;
+            }
+
+            status.style.display = 'none';
+            container.innerHTML = ''; 
+
             list.forEach(game => {
-                const card = document.createElement('div');
-                card.className = 'glass p-4 rounded-xl cursor-pointer hover:scale-105 transition-transform';
-                card.innerHTML = `
-                    <img src="${game.image}" class="rounded mb-2 w-full aspect-video object-cover" onerror="this.src='https://placehold.co/400x225?text=Game'">
-                    <h3 class="font-bold">${game.name}</h3>
+                const div = document.createElement('div');
+                div.className = 'glass p-3 rounded-lg cursor-pointer hover:scale-105 transition-all border-none';
+                div.innerHTML = `
+                    <img src="${game.image}" class="w-full aspect-video object-cover rounded mb-2" onerror="this.src='https://placehold.co/300x169?text=Game'">
+                    <div class="font-semibold text-sm truncate">${game.name}</div>
                 `;
-                card.onclick = () => {
-                    const view = document.getElementById('game-view');
-                    const frame = document.getElementById('game-frame');
-                    document.getElementById('game-title').innerText = game.name;
-                    view.classList.remove('hidden');
-                    view.classList.add('flex');
-                    frame.src = game.url;
+                div.onclick = () => {
+                    document.getElementById('game-area').style.display = 'flex';
+                    document.getElementById('game-frame').src = game.url;
+                    document.getElementById('active-title').innerText = game.name;
                 };
-                container.appendChild(card);
+                container.appendChild(div);
             });
         }
+
+        function closeGame() {
+            document.getElementById('game-area').style.display = 'none';
+            document.getElementById('game-frame').src = '';
+        }
+
+        // Wait for both the page and the external script to finish
+        window.addEventListener('load', () => {
+            if (window.games) {
+                renderLocalGames(window.games);
+            } else {
+                document.getElementById('status').innerText = "Database offline.";
+            }
+        });
     </script>
 </body>
 </html>
