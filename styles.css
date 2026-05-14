@@ -1,0 +1,114 @@
+:root {
+    --apple-gray: rgba(255, 255, 255, 0.05);
+    --apple-border: rgba(255, 255, 255, 0.1);
+    --text-primary: #ffffff;
+    --text-secondary: #86868b;
+}
+
+body {
+    background-color: #000;
+    color: var(--text-primary);
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif;
+    margin: 0;
+    overflow-x: hidden;
+}
+
+.bg-glow {
+    position: fixed;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle at center, #1d1d1f 0%, #000 70%);
+    z-index: -1;
+}
+
+.navbar {
+    position: sticky;
+    top: 0;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(20px);
+    border-bottom: 0.5px solid var(--apple-border);
+    z-index: 100;
+    padding: 15px 0;
+}
+
+.nav-content {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 40px;
+}
+
+.logo {
+    font-size: 24px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+}
+
+.search-container input {
+    background: var(--apple-gray);
+    border: none;
+    border-radius: 10px;
+    padding: 8px 15px;
+    color: white;
+    width: 250px;
+    transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.search-container input:focus {
+    width: 350px;
+    outline: none;
+    background: rgba(255,255,255,0.1);
+}
+
+.container {
+    max-width: 1200px;
+    margin: 40px auto;
+    padding: 0 20px;
+}
+
+.bento-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 20px;
+}
+
+.game-card {
+    background: var(--apple-gray);
+    border: 0.5px solid var(--apple-border);
+    border-radius: 22px;
+    padding: 20px;
+    text-align: center;
+    transition: all 0.4s cubic-bezier(0.15, 0, 0.15, 1);
+    cursor: pointer;
+}
+
+.game-card:hover {
+    background: rgba(255,255,255,0.08);
+    transform: scale(1.02);
+    border-color: rgba(255,255,255,0.3);
+}
+
+.game-card img {
+    width: 100%;
+    aspect-ratio: 1;
+    object-fit: cover;
+    border-radius: 16px;
+    margin-bottom: 15px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+}
+
+.game-card h3 {
+    font-size: 17px;
+    font-weight: 600;
+    margin: 0;
+}
+
+#status-text {
+    text-align: center;
+    color: var(--text-secondary);
+    margin-bottom: 20px;
+}
