@@ -3,87 +3,130 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nexus | Debug Mode</title>
+    <title>Nexus | Unblocked</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body { background: #020617; color: white; font-family: system-ui; }
-        .debug-panel { background: #1e293b; border: 1px solid #3b82f6; padding: 10px; margin-bottom: 20px; border-radius: 8px; font-family: monospace; font-size: 12px; }
-        .game-card { background: rgba(255,255,255,0.05); border-radius: 12px; overflow: hidden; transition: 0.2s; }
-        .game-card:hover { transform: translateY(-5px); background: rgba(255,255,255,0.1); }
+        body { background: #020617; color: white; font-family: sans-serif; overflow-x: hidden; }
+        .glass { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); }
+        .game-card:hover { transform: translateY(-5px); border-color: #3b82f6; box-shadow: 0 0 20px rgba(59, 130, 246, 0.3); }
+        #game-overlay { display: none; position: fixed; inset: 0; background: black; z-index: 999; }
     </style>
 </head>
-<body class="p-6">
+<body class="p-4 md:p-10">
 
-    <div class="max-w-6xl mx-auto">
-        <h1 class="text-3xl font-black text-blue-500 mb-4">NEXUS SYSTEM</h1>
+    <div id="games" class="hidden"></div>
+    <div id="content" class="hidden"></div>
 
-        <div class="debug-panel">
-            <p class="text-blue-400 font-bold mb-2 uppercase">[ System Log ]</p>
-            <div id="log">Waiting for games.js to report in...</div>
+    <header class="max-w-7xl mx-auto mb-12">
+        <h1 class="text-5xl font-black italic tracking-tighter bg-gradient-to-br from-blue-400 to-indigo-600 bg-clip-text text-transparent">NEXUS</h1>
+        <p class="text-slate-500 mt-2">v1.0.5 | Scramjet Architecture Ready</p>
+    </header>
+
+    <main class="max-w-7xl mx-auto">
+        <div id="status-box" class="glass p-4 mb-6 rounded-lg border-blue-500/30 text-sm font-monospace text-blue-300">
+            [System] Initializing Data Fetch...
         </div>
 
-        <div id="content">
-            <div id="games" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                </div>
+        <div id="portal-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-6">
+            </div>
+    </main>
+
+    <div id="game-overlay" class="flex-col">
+        <div class="p-4 bg-slate-900 border-b border-slate-800 flex justify-between items-center">
+            <h2 id="active-game-name" class="font-bold text-xl text-blue-400 underline decoration-2">Loading...</h2>
+            <button onclick="closeGame()" class="px-6 py-2 bg-red-600 hover:bg-red-700 rounded-full font-bold text-sm transition">EXIT TO NEXUS</button>
         </div>
-        <div id="game-container" style="display:none;"></div>
+        <iframe id="game-frame" class="w-full h-full border-none" src=""></iframe>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/gh/bubbls/ugs-singlefile@main/games.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/gn-math.github.io-main@1.0.5/"></script>
 
     <script>
-        const logEl = document.getElementById('log');
-        
-        function updateLog(msg, color = "text-white") {
-            logEl.innerHTML += `<div class="${color} mt-1">> ${msg}</div>`;
+        const grid = document.getElementById('portal-grid');
+        const status = document.getElementById('status-box');
+        const DATA_URL = 'https://cdn.jsdelivr.net/gh/bubbls/ugs-singlefile@main/games.js';
+
+        async function loadNexus() {
+            try {
+                status.innerText = "[System] Fetching raw game data...";
+                
+                // We fetch as text because the .js file might not be valid JSON
+                const response = await fetch(DATA_URL);
+                const text = await response.text();
+                
+                // Clean the text: sometimes these files have 'var games =' at the start
+                const cleanText = text.replace(/^(var|let|const)\s+\w+\s+=\s+/, '').replace(/;$/, '');
+                const data = JSON.parse(cleanText);
+
+                status.innerText = "[System] Data parsed. Analyzing structure...";
+                
+                let gamesArray = [];
+
+                // DATA DOCTOR: Convert different formats into one we can use
+                if (Array.isArray(data)) {
+                    gamesArray = data;
+                } else if (data.games && Array.isArray(data.games)) {
+                    gamesArray = data.games;
+                } else if (typeof data === 'object') {
+                    // It's a "Name": "URL" object
+                    gamesArray = Object.entries(data).map(([name, url]) => ({
+                        name: name,
+                        url: url,
+                        image: `https://images.unsplash.com/photo-1542751371-adc38448a05e?w=400&q=80` // Default icon
+                    }));
+                }
+
+                if (gamesArray.length === 0) throw new Error("No games found in file.");
+
+                renderGames(gamesArray);
+                status.innerText = `[System] Successfully loaded ${gamesArray.length} games.`;
+                setTimeout(() => status.style.display = 'none', 3000);
+
+            } catch (err) {
+                console.error(err);
+                status.innerHTML = `<span class="text-red-400">[Error] Failed to load games: ${err.message}</span>`;
+            }
         }
 
-        window.addEventListener('load', () => {
-            updateLog("Window loaded. Checking window.games...", "text-yellow-400");
-
-            // 1. Check if the variable even exists
-            if (typeof window.games === 'undefined') {
-                updateLog("ERROR: 'window.games' is undefined. The CDN script might be blocked or empty.", "text-red-500");
-                return;
-            }
-
-            // 2. Inspect the data structure
-            updateLog(`Data detected! Type: ${typeof window.games}`);
-            console.log("Full Game Data:", window.games); // Check your F12 console!
-
-            let gameList = [];
-
-            // 3. Attempt to find the list inside the data
-            if (Array.isArray(window.games)) {
-                gameList = window.games;
-                updateLog(`Success: Found array with ${gameList.length} games.`, "text-green-400");
-            } else if (window.games.games && Array.isArray(window.games.games)) {
-                gameList = window.games.games;
-                updateLog(`Success: Found nested array with ${gameList.length} games.`, "text-green-400");
-            } else {
-                updateLog("CRITICAL: Data structure is not an array. Check console (F12) to see the object.", "text-red-500");
-                logEl.innerHTML += `<pre class="bg-black p-2 mt-2 text-pink-400">${JSON.stringify(window.games, null, 2).substring(0, 300)}...</pre>`;
-                return;
-            }
-
-            // 4. Render the games
-            const container = document.getElementById('games');
-            container.innerHTML = ''; 
-
-            gameList.forEach(game => {
+        function renderGames(list) {
+            grid.innerHTML = '';
+            list.forEach(game => {
                 const card = document.createElement('div');
-                card.className = 'game-card p-3 cursor-pointer';
+                card.className = 'game-card glass p-3 rounded-2xl cursor-pointer transition-all group';
+                card.onclick = () => launchGame(game.url, game.name);
+                
+                const img = game.image || game.thumb || `https://placehold.co/400x225/1e293b/60a5fa?text=${encodeURIComponent(game.name)}`;
+                
                 card.innerHTML = `
-                    <img src="${game.image || game.thumb || ''}" class="w-full aspect-video object-cover rounded mb-2" onerror="this.src='https://placehold.co/300x169?text=No+Image'">
-                    <div class="font-bold text-sm truncate">${game.name || 'Unknown Game'}</div>
+                    <div class="relative overflow-hidden rounded-xl mb-3">
+                        <img src="${img}" class="w-full aspect-video object-cover group-hover:scale-110 transition-transform duration-500">
+                    </div>
+                    <h3 class="font-bold text-sm truncate text-slate-200">${game.name}</h3>
                 `;
-                card.onclick = () => {
-                    alert("Launching: " + (game.url || "No URL found"));
-                    if(game.url) window.location.href = game.url;
-                };
-                container.appendChild(card);
+                grid.appendChild(card);
             });
-        });
+        }
+
+        function launchGame(url, name) {
+            const overlay = document.getElementById('game-overlay');
+            const frame = document.getElementById('game-frame');
+            document.getElementById('active-game-name').innerText = name;
+            
+            overlay.style.display = 'flex';
+            frame.src = url;
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeGame() {
+            const overlay = document.getElementById('game-overlay');
+            const frame = document.getElementById('game-frame');
+            overlay.style.display = 'none';
+            frame.src = '';
+            document.body.style.overflow = 'auto';
+        }
+
+        // Start the engine
+        loadNexus();
     </script>
 </body>
 </html>
