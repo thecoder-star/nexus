@@ -3,130 +3,30 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nexus | Unblocked</title>
+    <title>Nexus</title>
+    <link rel="stylesheet" href="styles.css">
     <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        body { background: #020617; color: white; font-family: sans-serif; overflow-x: hidden; }
-        .glass { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); }
-        .game-card:hover { transform: translateY(-5px); border-color: #3b82f6; box-shadow: 0 0 20px rgba(59, 130, 246, 0.3); }
-        #game-overlay { display: none; position: fixed; inset: 0; background: black; z-index: 999; }
-    </style>
 </head>
-<body class="p-4 md:p-10">
+<body>
+    <div class="bg-glow"></div>
 
-    <div id="games" class="hidden"></div>
-    <div id="content" class="hidden"></div>
-
-    <header class="max-w-7xl mx-auto mb-12">
-        <h1 class="text-5xl font-black italic tracking-tighter bg-gradient-to-br from-blue-400 to-indigo-600 bg-clip-text text-transparent">NEXUS</h1>
-        <p class="text-slate-500 mt-2">v1.0.5 | Scramjet Architecture Ready</p>
-    </header>
-
-    <main class="max-w-7xl mx-auto">
-        <div id="status-box" class="glass p-4 mb-6 rounded-lg border-blue-500/30 text-sm font-monospace text-blue-300">
-            [System] Initializing Data Fetch...
-        </div>
-
-        <div id="portal-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-6">
+    <nav class="navbar">
+        <div class="nav-content">
+            <h1 class="logo">NEXUS</h1>
+            <div class="search-container">
+                <input type="text" id="gameSearch" placeholder="Search Apps & Games">
             </div>
+        </div>
+    </nav>
+
+    <main class="container">
+        <div id="status-text">Connecting to System...</div>
+        <div id="game-grid" class="bento-grid"></div>
     </main>
 
-    <div id="game-overlay" class="flex-col">
-        <div class="p-4 bg-slate-900 border-b border-slate-800 flex justify-between items-center">
-            <h2 id="active-game-name" class="font-bold text-xl text-blue-400 underline decoration-2">Loading...</h2>
-            <button onclick="closeGame()" class="px-6 py-2 bg-red-600 hover:bg-red-700 rounded-full font-bold text-sm transition">EXIT TO NEXUS</button>
-        </div>
-        <iframe id="game-frame" class="w-full h-full border-none" src=""></iframe>
-    </div>
-
-    <script src="https://cdn.jsdelivr.net/npm/gn-math.github.io-main@1.0.5/"></script>
-
-    <script>
-        const grid = document.getElementById('portal-grid');
-        const status = document.getElementById('status-box');
-        const DATA_URL = 'https://cdn.jsdelivr.net/gh/bubbls/ugs-singlefile@main/games.js';
-
-        async function loadNexus() {
-            try {
-                status.innerText = "[System] Fetching raw game data...";
-                
-                // We fetch as text because the .js file might not be valid JSON
-                const response = await fetch(DATA_URL);
-                const text = await response.text();
-                
-                // Clean the text: sometimes these files have 'var games =' at the start
-                const cleanText = text.replace(/^(var|let|const)\s+\w+\s+=\s+/, '').replace(/;$/, '');
-                const data = JSON.parse(cleanText);
-
-                status.innerText = "[System] Data parsed. Analyzing structure...";
-                
-                let gamesArray = [];
-
-                // DATA DOCTOR: Convert different formats into one we can use
-                if (Array.isArray(data)) {
-                    gamesArray = data;
-                } else if (data.games && Array.isArray(data.games)) {
-                    gamesArray = data.games;
-                } else if (typeof data === 'object') {
-                    // It's a "Name": "URL" object
-                    gamesArray = Object.entries(data).map(([name, url]) => ({
-                        name: name,
-                        url: url,
-                        image: `https://images.unsplash.com/photo-1542751371-adc38448a05e?w=400&q=80` // Default icon
-                    }));
-                }
-
-                if (gamesArray.length === 0) throw new Error("No games found in file.");
-
-                renderGames(gamesArray);
-                status.innerText = `[System] Successfully loaded ${gamesArray.length} games.`;
-                setTimeout(() => status.style.display = 'none', 3000);
-
-            } catch (err) {
-                console.error(err);
-                status.innerHTML = `<span class="text-red-400">[Error] Failed to load games: ${err.message}</span>`;
-            }
-        }
-
-        function renderGames(list) {
-            grid.innerHTML = '';
-            list.forEach(game => {
-                const card = document.createElement('div');
-                card.className = 'game-card glass p-3 rounded-2xl cursor-pointer transition-all group';
-                card.onclick = () => launchGame(game.url, game.name);
-                
-                const img = game.image || game.thumb || `https://placehold.co/400x225/1e293b/60a5fa?text=${encodeURIComponent(game.name)}`;
-                
-                card.innerHTML = `
-                    <div class="relative overflow-hidden rounded-xl mb-3">
-                        <img src="${img}" class="w-full aspect-video object-cover group-hover:scale-110 transition-transform duration-500">
-                    </div>
-                    <h3 class="font-bold text-sm truncate text-slate-200">${game.name}</h3>
-                `;
-                grid.appendChild(card);
-            });
-        }
-
-        function launchGame(url, name) {
-            const overlay = document.getElementById('game-overlay');
-            const frame = document.getElementById('game-frame');
-            document.getElementById('active-game-name').innerText = name;
-            
-            overlay.style.display = 'flex';
-            frame.src = url;
-            document.body.style.overflow = 'hidden';
-        }
-
-        function closeGame() {
-            const overlay = document.getElementById('game-overlay');
-            const frame = document.getElementById('game-frame');
-            overlay.style.display = 'none';
-            frame.src = '';
-            document.body.style.overflow = 'auto';
-        }
-
-        // Start the engine
-        loadNexus();
-    </script>
+    <div id="games" style="display:none"></div>
+    
+    <script src="https://cdn.jsdelivr.net/gh/bubbls/ugs-singlefile@main/games.js"></script>
+    <script src="script.js"></script>
 </body>
 </html>
